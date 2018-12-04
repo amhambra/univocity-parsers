@@ -1,8 +1,17 @@
 /*
- * Copyright (c) 2015 uniVocity Software Pty Ltd. All rights reserved.
- * This file is subject to the terms and conditions defined in file
- * 'LICENSE.txt', which is part of this source code package.
- *
+ * Copyright (c) 2018. Univocity Software Pty Ltd
+ * <p/>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.univocity.parsers.common.processor.core;
 
@@ -22,13 +31,14 @@ import java.util.*;
  *
  * @param <T> the annotated class type.
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
  * @see Processor
  * @see RowWriterProcessor
  */
 public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 
 	final Class<T> beanClass;
+	final Constructor<T> constructor;
 	protected final Set<FieldMapping> parsedFields = new LinkedHashSet<FieldMapping>();
 	private int lastFieldIndexMapped = -1;
 	private FieldMapping[] readOrder;
@@ -73,6 +83,23 @@ public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 		this.beanClass = beanType;
 		this.transformer = transformer;
 		this.methodFilter = methodFilter;
+
+
+		Constructor<?> c = null;
+		for (Constructor<?> constructor : this.beanClass.getDeclaredConstructors()) {
+			if (constructor.getParameterTypes().length == 0) {
+				c = constructor;
+				break;
+			}
+		}
+
+		if (c != null) {
+			if (!c.isAccessible()) {
+				c.setAccessible(true);
+			}
+		}
+
+		this.constructor = (Constructor<T>) c;
 	}
 
 	/**
@@ -141,16 +168,16 @@ public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 
 		Nested nested = AnnotationHelper.findAnnotation(element, Nested.class);
 		if (nested != null) {
-			Class nestedType = nested.type();
+			Class nestedType = AnnotationRegistry.getValue(element, nested, "type", nested.type());
 			if (nestedType == Object.class) {
 				nestedType = AnnotationHelper.getType(element);
 			}
 
 			HeaderTransformer transformer;
 
-			Class<? extends HeaderTransformer> transformerType = nested.headerTransformer();
+			Class<? extends HeaderTransformer> transformerType = AnnotationRegistry.getValue(element, nested, "headerTransformer", nested.headerTransformer());
 			if (transformerType != HeaderTransformer.class) {
-				String[] args = nested.args();
+				String[] args = AnnotationRegistry.getValue(element, nested, "args", nested.args());
 				transformer = AnnotationHelper.newInstance(HeaderTransformer.class, transformerType, args);
 			} else {
 				transformer = null;
@@ -258,7 +285,10 @@ public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 			}
 		}
 
-		if (AnnotationHelper.findAnnotation(target, Parsed.class).applyDefaultConversion()) {
+		Parsed parsed = AnnotationHelper.findAnnotation(target, Parsed.class);
+		boolean applyDefaultConversion = AnnotationRegistry.getValue(target, parsed, "applyDefaultConversion", parsed.applyDefaultConversion());
+
+		if (applyDefaultConversion) {
 			Conversion defaultConversion = AnnotationHelper.getDefaultConversion(target);
 			if (applyDefaultConversion(lastConversion, defaultConversion)) {
 				addConversion(defaultConversion, mapping);
@@ -350,6 +380,17 @@ public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 			}
 		}
 
+		if (conversions != null && row.length < readOrder.length) {
+			i = last;
+			for (; i < readOrder.length; i++) {
+				FieldMapping field = readOrder[i];
+				if (field != null) {
+					Object value = conversions.applyConversions(i, null, null);
+					field.write(instance, value);
+				}
+			}
+		}
+
 		if (missing != null) {
 			for (i = 0; i < missing.length; i++) {
 				Object value = valuesForMissing[i];
@@ -400,7 +441,7 @@ public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 					fieldsNotFound.add(mapping.getFieldName());
 					continue;
 				}
-				for(int i = 0; i < positions.length; i++) {
+				for (int i = 0; i < positions.length; i++) {
 					fieldOrder[positions[i]] = mapping;
 				}
 			} else if (mapping.getIndex() < fieldOrder.length) {
@@ -503,7 +544,7 @@ public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 
 		T instance;
 		try {
-			instance = beanClass.newInstance();
+			instance = constructor.newInstance();
 		} catch (Throwable e) {
 			throw new DataProcessingException("Unable to instantiate class '" + beanClass.getName() + '\'', row, e);
 		}
@@ -607,7 +648,8 @@ public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 							continue;
 						}
 						String fieldName = null;
-						while (it.hasNext() && (fieldName = it.next().getFieldName()) == null) ;
+						while (it.hasNext() && (fieldName = it.next().getFieldName()) == null)
+							;
 						syntheticHeaders[i] = fieldName;
 					}
 				}

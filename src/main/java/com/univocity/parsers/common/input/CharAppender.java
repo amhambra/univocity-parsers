@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 uniVocity Software Pty Ltd
+ * Copyright 2014 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,10 +37,10 @@ package com.univocity.parsers.common.input;
  *
  * <p> <b>Implementation note:</b> White spaces should be identified as any character {@code <= ' '}
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
  *
  */
-public interface CharAppender extends CharSequence{
+public interface CharAppender extends CharSequence {
 
 	/**
 	 * Appends the given character and marks it as ignored if it is a whitespace ({@code ch <= ' '})
@@ -69,10 +69,63 @@ public interface CharAppender extends CharSequence{
 	void append(char ch);
 
 	/**
+	 * Returns first the position of a given character
+	 * @param ch the character to look for
+	 * @param from the starting index from where the search will begin.
+	 * @return the position of the given character in the appended content, {@code -1} if not found
+	 */
+	int indexOf(char ch, int from);
+
+	/**
+	 * Returns first the position of a given character sequence
+	 * @param charSequence the character sequence to look for
+	 * @param from the starting index from where the search will begin.
+	 * @return the position of the given character sequence in the appended content, {@code -1} if not found
+	 */
+	int indexOf(char[] charSequence, int from);
+
+	/**
+	 * Returns first the position of a given character sequence
+	 * @param charSequence the character sequence to look for
+	 * @param from the starting index from where the search will begin.
+	 * @return the position of the given character sequence in the appended content, {@code -1} if not found
+	 */
+	int indexOf(CharSequence charSequence, int from);
+
+	/**
+	 * Returns the first position of any given character
+	 * @param chars the characters to look for
+	 * @param from the starting index from where the search will begin.
+	 * @return the position any one of the given characters in the appended content, {@code -1} if none found
+	 */
+	int indexOfAny(char[] chars, int from);
+
+	/**
+	 * Returns a section of the appended content
+	 * @param from the starting position in the buffer
+	 * @param length the number of characters to accumulate from the given start position
+	 * @return a {@code String} with the section of characters accumulated by this appender.
+	 */
+	String substring(int from, int length);
+
+	/**
+	 * Removes a section from the appended content
+	 * @param from the starting position in the buffer (inclusive)
+	 * @param length the number of characters to accumulate from the given start position
+	 */
+	void remove(int from, int length);
+
+	/**
 	 * Appends the given codepoint.
 	 * @param ch the codepoint to append
 	 */
 	void append(int ch);
+
+	/**
+	 * Appends the {@code String} representation of a given object.
+	 * @param obj the object whose {@code String} representation will be appended.
+	 */
+	void append(Object obj);
 
 	/**
 	 * Returns the current accumulated value length (the sum of all appended characters - whitespaceCount).
@@ -218,4 +271,33 @@ public interface CharAppender extends CharSequence{
 	 */
 	void append(String string, int from, int to);
 
+	/**
+	 * Ignores the given number of characters at the end of the appended content,
+	 * effectively marking these as whitespace. Invoking {@link #resetWhitespaceCount()}
+	 * or {@link #updateWhitespace()} will undo this effect.
+	 *
+	 * @param count the number of characters to ignore
+	 */
+	void ignore(int count);
+
+	/**
+	 * Deletes a given number of characters from the end of the appended content.
+	 * Will reset the internal whitespace count if any. Invoke {@link #updateWhitespace()}
+	 * to recalculate the number of trailing whitespaces in the appended content.
+	 * @param count the number of characters to delete.
+	 */
+	void delete(int count);
+
+	/**
+	 * Indicates whether this appender represents an empty {@code String}.
+	 * @return {@code} true calling {@link #getAndReset()} would return {@code null}, otherwise {@code false}.
+	 */
+	boolean isEmpty();
+
+	/**
+	 * Returns the last index of a given character in the current appended (characters that have been marked as whitespace will be ignored)
+	 * @param ch the character to look for
+	 * @return the last position of the given character in the appended content, or {@code -1} if not found.
+	 */
+	int lastIndexOf(char ch);
 }

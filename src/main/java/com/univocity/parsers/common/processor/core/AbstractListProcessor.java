@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 uniVocity Software Pty Ltd
+ * Copyright 2014 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,17 +35,35 @@ import java.util.*;
  * </pre></blockquote><hr>
  *
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
  *
  */
 public abstract class AbstractListProcessor<T extends Context> implements Processor<T> {
 
 	private List<String[]> rows;
 	private String[] headers;
+	private final int expectedRowCount;
+
+	/**
+	 * Creates a new processor of {@code String[]} rows.
+	 */
+	public AbstractListProcessor() {
+		this(0);
+	}
+
+	/**
+	 * Creates a new processor of {@code String[]} rows.
+	 *
+	 * @param expectedRowCount expected number of rows to be parsed from the input.
+	 *                         Used to pre-allocate the size of the output {@link List} returned by {@link #getRows()}
+	 */
+	public AbstractListProcessor(int expectedRowCount) {
+		this.expectedRowCount = expectedRowCount <= 0 ? 10000 : expectedRowCount;
+	}
 
 	@Override
 	public void processStarted(T context) {
-		rows = new ArrayList<String[]>(100);
+		rows = new ArrayList<String[]>(expectedRowCount);
 	}
 
 	/**

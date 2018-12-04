@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2016 uniVocity Software Pty Ltd
+ * Copyright 2016 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import com.univocity.parsers.common.*;
  * Use {@link CsvParserSettings#setUnescapedQuoteHandling(UnescapedQuoteHandling)} to configure the appropriate
  * handling of unescaped quotes on your input.
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
  * @see com.univocity.parsers.csv.CsvParserSettings
  * @see com.univocity.parsers.csv.CsvFormat
  * @see com.univocity.parsers.csv.CsvParser
@@ -41,7 +41,15 @@ public enum UnescapedQuoteHandling {
 
 	/**
 	 * If unescaped quotes are found in the input, consider the value as an unquoted value. This will make the parser
-	 * accumulate all characters until the delimiter defined by {@link CsvFormat#getDelimiter()} is found in the input.
+	 * accumulate all characters of the current parsed value until the delimiter defined by {@link CsvFormat#getDelimiter()} is found.
+	 * If no delimiter is found in the value, the parser will continue accumulating characters from the input
+	 * until a delimiter or line ending is found.
+	 */
+	BACK_TO_DELIMITER,
+
+	/**
+	 * If unescaped quotes are found in the input, consider the value as an unquoted value. This will make the parser
+	 * accumulate all characters until the delimiter defined by {@link CsvFormat#getDelimiter()}, or a line ending is found in the input.
 	 */
 	STOP_AT_DELIMITER,
 

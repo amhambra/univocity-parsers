@@ -1,8 +1,19 @@
-/*
- * Copyright (c) 2013 uniVocity Software Pty Ltd. All rights reserved.
- * This file is subject to the terms and conditions defined in file
- * 'LICENSE.txt', which is part of this source code package.
- */
+/*******************************************************************************
+ * Copyright 2018 Univocity Software Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
+
 
 package com.univocity.parsers.annotations.meta;
 
@@ -38,7 +49,7 @@ public class ContentCleaner implements Conversion<Object, String> {
 	private String clean(Object input){
 		String result = String.valueOf(input);
 
-		CharAppender out = null;
+		StringBuilder out = null;
 
 		for(int i = 0; i < result.length(); i++){
 			char ch = result.charAt(i);
@@ -46,7 +57,7 @@ public class ContentCleaner implements Conversion<Object, String> {
 			if(ch >= min && ch <= max){
 				if(Arrays.binarySearch(charsToRemove, ch) >= 0){
 					if(out == null){
-						out = new DefaultCharAppender(result.length(), "", 0);
+						out = new StringBuilder(result.length());
 						out.append(result, 0, i);
 					}
 				}
@@ -56,7 +67,7 @@ public class ContentCleaner implements Conversion<Object, String> {
 		}
 
 		if(out != null){
-			result = out.getAndReset();
+			result = out.toString();
 		}
 
 		return result;

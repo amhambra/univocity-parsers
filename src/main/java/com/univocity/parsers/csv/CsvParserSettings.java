@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 uniVocity Software Pty Ltd
+ * Copyright 2014 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import java.util.*;
  * <p>When reading, if the parser does not read any character from the input, and the input is within quotes, the empty is used instead of an empty string</li>
  * </ul>
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
  * @see com.univocity.parsers.csv.CsvParser
  * @see com.univocity.parsers.csv.CsvFormat
  * @see com.univocity.parsers.common.CommonParserSettings
@@ -429,7 +429,7 @@ public class CsvParserSettings extends CommonParserSettings<CsvFormat> {
 	 *
 	 * Note: if {@link #keepQuotes} evaluates to {@code true}, values won't be trimmed.
 	 *
-	 * @param ignoreLeadingWhitespaces whether leading whitespaces from quoted values should be skipped
+	 * @param ignoreLeadingWhitespacesInQuotes whether leading whitespaces from quoted values should be skipped
 	 */
 	public void setIgnoreLeadingWhitespacesInQuotes(boolean ignoreLeadingWhitespacesInQuotes) {
 		this.ignoreLeadingWhitespacesInQuotes = ignoreLeadingWhitespacesInQuotes;

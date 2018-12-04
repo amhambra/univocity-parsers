@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 uniVocity Software Pty Ltd
+ * Copyright 2014 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import java.util.*;
  * <p> It also provides a default implementation for most of the methods specified by the {@link CharInputReader} interface.
  * <p> Extending classes must essentially read characters from a given {@link java.io.Reader} and assign it to the public {@link AbstractCharInputReader#buffer} when requested (in the {@link AbstractCharInputReader#reloadBuffer()} method).
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
  * @see com.univocity.parsers.common.Format
  * @see com.univocity.parsers.common.input.DefaultCharInputReader
  * @see com.univocity.parsers.common.input.concurrent.ConcurrentCharInputReader
@@ -48,6 +48,7 @@ public abstract class AbstractCharInputReader implements CharInputReader {
 	private int recordStart;
 	final int whitespaceRangeStart;
 	private boolean skipping = false;
+	private boolean commentProcessing = false;
 
 	/**
 	 * Current position in the buffer
@@ -156,12 +157,14 @@ public abstract class AbstractCharInputReader implements CharInputReader {
 			}
 		} else {
 			length = -1;
-			start(new InputStreamReader(inputStream));
+			start(new InputStreamReader(inputStream), false);
 		}
 	}
 
-	@Override
-	public final void start(Reader reader) {
+	private void start(Reader reader, boolean resetTmp){
+		if(resetTmp) {
+			tmp.reset();
+		}
 		stop();
 		setReader(reader);
 		lineCount = 0;
@@ -177,6 +180,11 @@ public abstract class AbstractCharInputReader implements CharInputReader {
 		}
 	}
 
+	@Override
+	public final void start(Reader reader) {
+		start(reader, true);
+	}
+
 	/**
 	 * Requests the next batch of characters from the implementing class and updates
 	 * the character count.
@@ -184,7 +192,7 @@ public abstract class AbstractCharInputReader implements CharInputReader {
 	 * <p> If there are no more characters in the input, the reading will stop by invoking the {@link AbstractCharInputReader#stop()} method.
 	 */
 	private void updateBuffer() {
-		if (length - recordStart > 0 && buffer != null && !skipping) {
+		if (!commentProcessing && length - recordStart > 0 && buffer != null && !skipping) {
 			tmp.append(buffer, recordStart, length - recordStart);
 		}
 		recordStart = 0;
@@ -325,6 +333,8 @@ public abstract class AbstractCharInputReader implements CharInputReader {
 	@Override
 	public String readComment() {
 		long expectedLineCount = lineCount + 1;
+		commentProcessing = true;
+		tmp.reset();
 		try {
 			do {
 				char ch = nextChar();
@@ -343,6 +353,8 @@ public abstract class AbstractCharInputReader implements CharInputReader {
 		} catch (EOFException ex) {
 			tmp.updateWhitespace();
 			return tmp.getAndReset();
+		} finally {
+			commentProcessing = false;
 		}
 	}
 
@@ -374,6 +386,11 @@ public abstract class AbstractCharInputReader implements CharInputReader {
 	}
 
 	@Override
+	public final int currentParsedContentLength() {
+		return i - recordStart + tmp.length();
+	}
+
+	@Override
 	public final String currentParsedContent() {
 		if (tmp.length() == 0) {
 			if (i > recordStart) {
@@ -385,13 +402,56 @@ public abstract class AbstractCharInputReader implements CharInputReader {
 			tmp.append(buffer, recordStart, i - recordStart);
 		}
 		return tmp.getAndReset();
+	}
 
+	@Override
+	public final int lastIndexOf(char ch) {
+		if (tmp.length() == 0) {
+			if (i > recordStart) {
+				for (int x = i - 1, c = 0; x >= recordStart; x--, c++) {
+					if (buffer[x] == ch) {
+						return recordStart + c;
+					}
+				}
+			}
+			return -1;
+		}
+		if(i > recordStart){
+			for (int x = i - 1, c = 0; x >= recordStart; x--, c++) {
+				if (buffer[x] == ch) {
+					return tmp.length() + recordStart + c;
+				}
+			}
+		}
+		return tmp.lastIndexOf(ch);
 	}
 
 	@Override
 	public final void markRecordStart() {
 		tmp.reset();
 		recordStart = i % length;
+	}
+
+	@Override
+	public final boolean skipString(char ch, char stop) {
+		if (i == 0) {
+			return false;
+		}
+		int i = this.i;
+		for (; ch != stop; ch = buffer[i++]) {
+			if (i >= length) {
+				return false;
+			}
+			if (lineSeparator1 == ch && (lineSeparator2 == '\0' || lineSeparator2 == buffer[i])) {
+				break;
+			}
+		}
+
+		this.i = i - 1;
+
+		nextChar();
+
+		return true;
 	}
 
 	@Override
@@ -490,12 +550,12 @@ public abstract class AbstractCharInputReader implements CharInputReader {
 			len += 2;
 		} else {
 			if (trimTrailing) {
-				while(len > 0 && buffer[pos + len -1] <= ' '){
+				while (len > 0 && buffer[pos + len - 1] <= ' ') {
 					len--;
 				}
 			}
 			if (trimLeading) {
-				while(len > 0 && buffer[pos] <= ' '){
+				while (len > 0 && buffer[pos] <= ' ') {
 					pos++;
 					len--;
 				}
@@ -515,5 +575,44 @@ public abstract class AbstractCharInputReader implements CharInputReader {
 			updateBuffer();
 		}
 		return out;
+	}
+
+	public final boolean skipQuotedString(char quote, char escape, char stop1, char stop2) {
+		if (i == 0) {
+			return false;
+		}
+
+		int i = this.i;
+
+		while (true) {
+			if (i >= length) {
+				return false;
+			}
+			ch = buffer[i];
+			if (ch == quote) {
+				if (buffer[i - 1] == escape) {
+					i++;
+					continue;
+				}
+				if (i + 1 < length) {
+					char next = buffer[i + 1];
+					if (next == stop1 || next == stop2) {
+						break;
+					}
+				}
+
+				return false;
+			} else if (lineSeparator1 == ch && normalizeLineEndings && (lineSeparator2 == '\0' || i + 1 < length && lineSeparator2 == buffer[i + 1])) {
+				return false;
+			}
+			i++;
+		}
+
+		this.i = i + 1;
+
+		if (this.i >= length) {
+			updateBuffer();
+		}
+		return true;
 	}
 }

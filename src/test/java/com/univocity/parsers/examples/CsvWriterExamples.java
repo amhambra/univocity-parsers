@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2016 uniVocity Software Pty Ltd
+ * Copyright 2016 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,16 @@
  ******************************************************************************/
 package com.univocity.parsers.examples;
 
+import com.univocity.parsers.common.*;
+import com.univocity.parsers.common.processor.*;
 import com.univocity.parsers.csv.*;
+import com.univocity.parsers.issues.github.*;
 import org.testng.annotations.*;
+
+import java.io.*;
+import java.util.*;
+
+import static org.testng.Assert.*;
 
 public class CsvWriterExamples extends Example {
 

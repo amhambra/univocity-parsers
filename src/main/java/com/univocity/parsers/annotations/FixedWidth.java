@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2016 uniVocity Software Pty Ltd
+ * Copyright 2016 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import java.lang.annotation.*;
  *
  * <p>Commonly used for java beans processed using {@link BeanProcessor} and/or {@link BeanWriterProcessor}
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:dev@univocity.com">dev@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:dev@univocity.com">dev@univocity.com</a>
  * @see FixedWidthFields
  * @see FixedWidthParser
  * @see FixedWidthWriter
@@ -60,6 +60,15 @@ public @interface FixedWidth {
 	 * @return padding of the fixed-width field
 	 */
 	char padding() default ' ';
+
+	/**
+	 * Configures whether to retain the padding character when parsing values for this field
+	 *
+	 * <i>(defaults to {@code false})</i>
+	 *
+	 * @return flag indicating the padding character should be kept in the parsed value
+	 */
+	boolean keepPadding() default false;
 
 	/**
 	 * Defines the starting position of the fixed-width field

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2016 uniVocity Software Pty Ltd
+ * Copyright 2016 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -175,6 +175,55 @@ public class ExpandingCharAppenderTest {
 
 		a.append("012345678901234567890123456789012345678901234567890123456789".toCharArray(), 0, 60);
 		assertEquals(a.toString(), "abcdefhi012345678901234567890123456789012345678901234567890123456789");
+	}
+
+	@Test
+	public void testRemove(){
+		ExpandingCharAppender a = new ExpandingCharAppender(10, null, -1);
+		a.append("0123456789");
+
+		a.remove(0, 0);
+		assertEquals(a.toString(), "0123456789");
+
+		a.remove(10, 0);
+		assertEquals(a.toString(), "0123456789");
+
+
+		a.remove(0, 1);
+		assertEquals(a.toString(), "123456789");
+
+		a.remove(8, 1);
+		assertEquals(a.toString(), "12345678");
+
+		a.remove(2, 3);
+		assertEquals(a.toString(), "12678");
+
+		a.remove(1, 2);
+		assertEquals(a.toString(), "178");
+
+		a.remove(1, 1);
+		assertEquals(a.toString(), "18");
+
+		a.remove(1, 1);
+		assertEquals(a.toString(), "1");
+
+		a.remove(0, 1);
+		assertEquals(a.toString(), null);
+
+		a.append("0123456789");
+		a.remove(1, 1);
+		assertEquals(a.toString(), "023456789");
+
+		a.remove(1, 4);
+		assertEquals(a.toString(), "06789");
+
+		a.reset();
+		a.append("0123456789");
+		a.remove(1, 7);
+		assertEquals(a.toString(), "089");
+
+		a.remove(0, 3);
+		assertEquals(a.toString(), null);
 	}
 
 }

@@ -1,8 +1,17 @@
 /*
- * Copyright (c) 2015 uniVocity Software Pty Ltd. All rights reserved.
- * This file is subject to the terms and conditions defined in file
- * 'LICENSE.txt', which is part of this source code package.
- *
+ * Copyright (c) 2018. Univocity Software Pty Ltd
+ * <p/>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.univocity.parsers.common.processor.core;
 
@@ -24,9 +33,9 @@ import java.util.Map.*;
  */
 public abstract class AbstractProcessorSwitch<T extends Context> implements Processor<T>, ColumnOrderDependent {
 
-	private Map<Processor, ContextWrapper> processors;
+	private Map<Processor, T> processors;
 	private Processor selectedProcessor;
-	private ContextWrapper contextForProcessor;
+	private T contextForProcessor;
 
 	/**
 	 * Analyzes the input to determine whether or not the row processor implementation must be changed
@@ -91,9 +100,18 @@ public abstract class AbstractProcessorSwitch<T extends Context> implements Proc
 
 	@Override
 	public void processStarted(T context) {
-		processors = new HashMap<Processor, ContextWrapper>();
+		processors = new HashMap<Processor, T>();
 		selectedProcessor = NoopProcessor.instance;
 	}
+
+	/**
+	 * Wraps a given parser context object that returns headers and extracted field indexes
+	 * associated with a given processor in this switch.
+	 * @param context the context to wrap
+	 * @return a wrapped context that returns the headers and extracted field
+	 * indexes from {@link #getHeaders()} and {@link #getIndexes()}
+	 */
+	protected abstract T wrapContext(T context);
 
 	@Override
 	public final void rowProcessed(String[] row, final T context) {
@@ -106,21 +124,7 @@ public abstract class AbstractProcessorSwitch<T extends Context> implements Proc
 
 			if (processor != NoopProcessor.instance) {
 				if (contextForProcessor == null) {
-					contextForProcessor = new ContextWrapper(context) {
-
-						private final String[] fieldNames = getHeaders();
-						private final int[] indexes = getIndexes();
-
-						@Override
-						public String[] headers() {
-							return fieldNames == null || fieldNames.length == 0 ? context.headers() : fieldNames;
-						}
-
-						@Override
-						public int[] extractedFieldIndexes() {
-							return indexes == null || indexes.length == 0 ? context.extractedFieldIndexes() : indexes;
-						}
-					};
+					contextForProcessor = wrapContext(context);
 
 					processor.processStarted(contextForProcessor);
 					processors.put(processor, contextForProcessor);
@@ -150,7 +154,7 @@ public abstract class AbstractProcessorSwitch<T extends Context> implements Proc
 	public void processEnded(T context) {
 		processorSwitched(selectedProcessor, null);
 		selectedProcessor = NoopProcessor.instance;
-		for (Entry<Processor, ContextWrapper> e : processors.entrySet()) {
+		for (Entry<Processor, T> e : processors.entrySet()) {
 			e.getKey().processEnded(e.getValue());
 		}
 	}

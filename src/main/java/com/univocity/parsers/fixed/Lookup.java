@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2015 uniVocity Software Pty Ltd
+ * Copyright 2015 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,9 @@
  ******************************************************************************/
 package com.univocity.parsers.fixed;
 
+import com.univocity.parsers.common.*;
+import com.univocity.parsers.common.record.*;
+
 import java.util.*;
 import java.util.Map.*;
 
@@ -24,9 +27,11 @@ class Lookup {
 	final int[] lengths;
 	final FieldAlignment[] alignments;
 	final boolean[] ignore;
+	final Boolean[] keepPaddingFlags;
 	final char[] paddings;
 	final String[] fieldNames;
 	final char wildcard;
+	Context context;
 
 	Lookup(String value, FixedWidthFields config, FixedWidthFormat format) {
 		this.value = value.toCharArray();
@@ -36,6 +41,46 @@ class Lookup {
 		this.paddings = config.getFieldPaddings(format);
 		this.wildcard = format.getLookupWildcard();
 		this.ignore = config.getFieldsToIgnore();
+		this.keepPaddingFlags = config.getKeepPaddingFlags();
+	}
+
+	void initializeLookupContext(ParsingContext context, final String[] headersToUse) {
+		this.context = new ParsingContextWrapper(context) {
+			RecordFactory recordFactory;
+			final ColumnMap columnMap = new ColumnMap(this, null);
+
+			@Override
+			public String[] headers() {
+				return headersToUse;
+			}
+
+			@Override
+			public int indexOf(String header) {
+				return columnMap.indexOf(header);
+			}
+
+			@Override
+			public int indexOf(Enum<?> header) {
+				return columnMap.indexOf(header);
+			}
+
+			@Override
+			public Record toRecord(String[] row) {
+				if (recordFactory == null) {
+					recordFactory = new RecordFactory(this);
+				}
+				return recordFactory.newRecord(row);
+			}
+
+			@Override
+			public RecordMetaData recordMetaData(){
+				if(recordFactory == null){
+					recordFactory = new RecordFactory(this);
+				}
+				return recordFactory.getRecordMetaData();
+			}
+		};
+
 	}
 
 	boolean matches(char[] lookup) {

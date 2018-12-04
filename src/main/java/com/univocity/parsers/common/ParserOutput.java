@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 uniVocity Software Pty Ltd
+ * Copyright 2014 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ import java.util.*;
  *
  * Implementations of this class are made available to concrete parser implementations of {@link AbstractParser}.
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
  * @see AbstractParser
  * @see CommonSettings
  */
@@ -72,6 +72,7 @@ public class ParserOutput {
 	private final CharAppender appenderInstance;
 	private boolean columnsToExtractInitialized;
 	private boolean columnsReordered;
+	private boolean columnReorderingEnabledSetting;
 
 	private String[] headers;
 	private int[] selectedIndexes;
@@ -79,6 +80,7 @@ public class ParserOutput {
 	private long currentRecord;
 
 	public boolean trim = false;
+	public final Deque<String[]> pendingRecords = new LinkedList<String[]>();
 
 	/**
 	 * Headers parsed from the input when {@link CommonParserSettings#headerExtractionEnabled} is {@code true},
@@ -118,6 +120,7 @@ public class ParserOutput {
 		if (settings.getHeaders() != null) {
 			initializeHeaders();
 		}
+		this.columnReorderingEnabledSetting = settings.isColumnReorderingEnabled();
 	}
 
 	protected void initializeHeaders() {
@@ -150,6 +153,9 @@ public class ParserOutput {
 	 * @return the sequence of parsed values in a record.
 	 */
 	public String[] rowParsed() {
+		if(!pendingRecords.isEmpty()){
+			return pendingRecords.poll();
+		}
 		// some values were parsed. Let's return them
 		if (column > 0) {
 			// identifies selected columns and headers (in the first non-empty row)
@@ -176,6 +182,10 @@ public class ParserOutput {
 
 			currentRecord++;
 			if (columnsReordered) {
+				if(selectedIndexes.length == 0){
+					column = 0;
+					return ArgumentUtils.EMPTY_STRING_ARRAY;
+				}
 				String[] reorderedValues = new String[selectedIndexes.length];
 				for (int i = 0; i < selectedIndexes.length; i++) {
 					int index = selectedIndexes[i];
@@ -189,7 +199,9 @@ public class ParserOutput {
 				this.appender = appenders[0];
 				return reorderedValues;
 			} else {
-				String[] out = new String[column];
+				int last = columnReorderingEnabledSetting ? column : column < headers.length ? headers.length : column;
+
+				String[] out = new String[last];
 				System.arraycopy(parsedValues, 0, out, 0, column);
 				column = 0;
 				this.appender = appenders[0];
@@ -203,6 +215,9 @@ public class ParserOutput {
 			currentRecord++;
 
 			if (columnsReordered) {
+				if(selectedIndexes.length == 0){
+					return ArgumentUtils.EMPTY_STRING_ARRAY;
+				}
 				String[] out = new String[selectedIndexes.length];
 				Arrays.fill(out, nullValue);
 				return out;
@@ -256,6 +271,9 @@ public class ParserOutput {
 	public String[] getHeaders() {
 		if (parser != null) {
 			parser.extractHeadersIfRequired();
+		}
+		if(this.headers == null){
+			this.headers = parser.settings.getHeaders();
 		}
 		return this.headers;
 	}

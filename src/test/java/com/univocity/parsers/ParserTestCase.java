@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 uniVocity Software Pty Ltd
+ * Copyright 2014 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ public abstract class ParserTestCase {
 		for (int i = 0; i < expectedResult.length; i++) {
 			String[] row = rows.get(i);
 			Object[] expectedRow = expectedResult[i];
-			assertEquals(row, expectedRow);
+			assertEquals(row, expectedRow, "Inconsistency found on row " + i);
 		}
 	}
 

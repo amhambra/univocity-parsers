@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 uniVocity Software Pty Ltd
+ * Copyright 2014 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import static com.univocity.parsers.annotations.helpers.AnnotationHelper.*;
 /**
  * A helper class with information about the location of an field annotated with {@link Parsed} in a record.
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
  */
 public class FieldMapping {
 	private final Class parentClass;
@@ -93,7 +93,7 @@ public class FieldMapping {
 		String name = "";
 
 		if (parsed != null) { //field can be annotated with @Nested only. In this case we get the original field name
-			index = parsed.index();
+			index = AnnotationRegistry.getValue(target, parsed, "index", parsed.index());
 
 			if (index >= 0) {
 				fieldName = null;
@@ -103,7 +103,7 @@ public class FieldMapping {
 				return;
 			}
 
-			String[] fields = parsed.field();
+			String[] fields = AnnotationRegistry.getValue(target, parsed, "field", parsed.field());
 
 			if (fields.length > 1 && headers != null) {
 				for (int i = 0; i < headers.length; i++) {
@@ -233,9 +233,15 @@ public class FieldMapping {
 	private void setAccessible() {
 		if (!accessible) {
 			if (target instanceof Field) {
-				((Field) target).setAccessible(true);
-			} else {
-				((Method) target).setAccessible(true);
+				final Field field = ((Field) target);
+				if (!field.isAccessible()) {
+					field.setAccessible(true);
+				}
+			} else if (target instanceof Method) {
+				final Method method = (Method) target;
+				if (!method.isAccessible()) {
+					method.setAccessible(true);
+				}
 			}
 			accessible = true;
 		}
@@ -302,8 +308,18 @@ public class FieldMapping {
 				return ((Field) target).get(instance);
 			}
 		} catch (Throwable e) {
+			if (e instanceof InvocationTargetException) {
+				e = e.getCause();
+			}
 			if (!ignoreErrors) {
-				throw new DataProcessingException("Unable to get value from field " + toString(), e);
+				String msg = "Unable to get value from field: " + toString();
+				if (e instanceof DataProcessingException) {
+					DataProcessingException ex = (DataProcessingException) e;
+					ex.setDetails(msg);
+					throw ex;
+				}
+
+				throw new DataProcessingException(msg, e);
 			}
 		}
 		return null;
@@ -352,17 +368,28 @@ public class FieldMapping {
 				((Field) target).set(instance, value);
 			}
 		} catch (Throwable e) {
-			if (e instanceof DataProcessingException) {
-				throw (DataProcessingException) e;
-			}
 			String valueTypeName = value == null ? null : value.getClass().getName();
-
 			String msg;
+			String details = null;
 			if (valueTypeName != null) {
 				msg = "Unable to set value '{value}' of type '" + valueTypeName + "' to field " + toString();
 			} else {
 				msg = "Unable to set value 'null' to field " + toString();
 			}
+
+			if (e instanceof InvocationTargetException) {
+				e = e.getCause();
+				details = msg;
+			}
+
+			if (e instanceof DataProcessingException) {
+				DataProcessingException ex = (DataProcessingException) e;
+				ex.markAsNonFatal();
+				ex.setValue(value);
+				ex.setDetails(details);
+				throw (DataProcessingException) e;
+			}
+
 			DataProcessingException ex = new DataProcessingException(msg, e);
 			ex.markAsNonFatal();
 			ex.setValue(value);

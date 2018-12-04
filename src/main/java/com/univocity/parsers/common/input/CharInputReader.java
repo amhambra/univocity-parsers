@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 uniVocity Software Pty Ltd
+ * Copyright 2014 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,12 @@ import com.univocity.parsers.common.*;
 import java.io.*;
 
 /**
- * The definition of a character input reader used by all uniVocity-parsers that extend {@link AbstractParser}.
+ * The definition of a character input reader used by all univocity-parsers that extend {@link AbstractParser}.
  *
  * <p> This interface declares basic functionalities to provide a common input manipulation structure for all parser classes.
  * <p> Implementations of this interface <b>MUST</b> convert the sequence of newline characters defined by {@link Format#getLineSeparator()} into the normalized newline character provided in {@link Format#getNormalizedNewline()}.
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
  * @see com.univocity.parsers.common.Format
  */
 public interface CharInputReader extends CharInput {
@@ -115,11 +115,24 @@ public interface CharInputReader extends CharInput {
 	char skipWhitespace(char current, char stopChar1, char stopChar2);
 
 	/**
+	 * Returns the length of the character sequence parsed to produce the current record.
+	 * @return the length of the text content parsed for the current input record
+	 */
+	int currentParsedContentLength();
+
+	/**
 	 * Returns a String with the input character sequence parsed to produce the current record.
 	 *
 	 * @return the text content parsed for the current input record.
 	 */
 	String currentParsedContent();
+
+	/**
+	 * Returns the last index of a given character in the current parsed content
+	 * @param ch the character to look for
+	 * @return the last position of the given character in the current parsed content, or {@code -1} if not found.
+	 */
+	int lastIndexOf(char ch);
 
 	/**
 	 * Marks the start of a new record in the input, used internally to calculate the result of {@link #currentParsedContent()}
@@ -143,6 +156,19 @@ public interface CharInputReader extends CharInput {
 	String getString(char ch, char stop, boolean trim, String nullValue, int maxLength);
 
 	/**
+	 * Attempts to skip a {@code String} from the current position until a stop character is found on the input,
+	 * or a line ending is reached. If the {@code String} can be skipped, the current position of the parser will be updated to
+	 * the last consumed character. If the internal buffer needs to be reloaded, this method will return {@code false}
+	 * and the current position of the buffer will remain unchanged.
+	 *
+	 * @param ch        the current character to be considered. If equal to the stop character {@code false} will be returned
+	 * @param stop      the stop character that identifies the end of the content to be collected
+	 *
+	 * @return {@code true} if an entire {@code String} value was found on the input and skipped, or {@code false} if the buffer needs to reloaded.
+	 */
+	boolean skipString(char ch, char stop);
+
+	/**
 	 * Attempts to collect a quoted {@code String} from the current position until a closing quote or stop character is found on the input,
 	 * or a line ending is reached. If the {@code String} can be obtained, the current position of the parser will be updated to
 	 * the last consumed character. If the internal buffer needs to be reloaded, this method will return {@code null}
@@ -161,4 +187,19 @@ public interface CharInputReader extends CharInput {
 	 * @return the {@code String} found on the input, or {@code null} if the buffer needs to reloaded or the maximum length has been exceeded.
 	 */
 	String getQuotedString(char quote, char escape, char escapeEscape, int maxLength, char stop1, char stop2, boolean keepQuotes, boolean keepEscape, boolean trimLeading, boolean trimTrailing);
+
+	/**
+	 * Attempts to skip a quoted {@code String} from the current position until a stop character is found on the input,
+	 * or a line ending is reached. If the {@code String} can be skipped, the current position of the parser will be updated to
+	 * the last consumed character. If the internal buffer needs to be reloaded, this method will return {@code false}
+	 * and the current position of the buffer will remain unchanged.
+	 *
+	 * @param quote the quote character
+	 * @param escape the quote escape character
+	 * @param stop1 the first stop character that identifies the end of the content to be collected
+	 * @param stop2 the second stop character that identifies the end of the content to be collected
+	 *
+	 * @return {@code true} if an entire {@code String} value was found on the input and skipped, or {@code false} if the buffer needs to reloaded.
+	 */
+	boolean skipQuotedString(char quote, char escape, char stop1, char stop2);
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 uniVocity Software Pty Ltd
+ * Copyright 2014 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -97,11 +97,6 @@ public class FixedWidthWriterTest extends FixedWidthParserTest {
 
 	@Test(enabled = true, dataProvider = "lineSeparatorProvider")
 	public void testWriterWithSpacesAndOverflow(char[] lineSeparator) throws Exception {
-		FixedWidthWriterSettings settings = new FixedWidthWriterSettings(getFieldLengths());
-		settings.getFormat().setLineSeparator(lineSeparator);
-
-		settings.setNullValue("?");
-
 		String[] expectedHeaders = new String[]{
 				"DATE", "NAME", "OWED", "INTEREST",
 		};
@@ -116,16 +111,21 @@ public class FixedWidthWriterTest extends FixedWidthParserTest {
 		};
 
 		String[][] expectedResult = new String[][]{
-				{null, null},
+				{"?", "?"},
 				{"2013-FEB-28", "  Harry Dong  ", "15000.99", " 8.786 ",},
 				{"2013-JANUAR", " Billy Rubin  - Ha ", " 15100.9934534534534", " - 5 - ",},
 
 		};
 
+		FixedWidthWriterSettings settings = new FixedWidthWriterSettings(getFieldLengths());
+		settings.getFormat().setLineSeparator(lineSeparator);
+		settings.getFormat().setPadding('-');
+		settings.setNullValue("?");
+
 		settings.setIgnoreLeadingWhitespaces(false);
 		settings.setIgnoreTrailingWhitespaces(false);
 		settings.setHeaders(expectedHeaders);
-		settings.getFormat().setPadding('-');
+
 
 		ByteArrayOutputStream fixedWidthResult = new ByteArrayOutputStream();
 
@@ -468,4 +468,16 @@ public class FixedWidthWriterTest extends FixedWidthParserTest {
 		String row = w.writeRowToString("67", "1234");
 		assertEquals(row, "     67   1234    __    .");
 	}
+
+	@Test
+	public void writeNullRowShouldReplaceWithNullValueFromSettings() {
+		FixedWidthWriterSettings settings = new FixedWidthWriterSettings(new FixedWidthFields(5));
+		settings.getFormat().setLineSeparator("\n");
+		settings.setNullValue("N/A");
+		StringWriter sw = new StringWriter();
+		FixedWidthWriter fixedWidthWriter = new FixedWidthWriter(sw, settings);
+		fixedWidthWriter.writeRow(new String[] {null});
+		assertEquals(sw.toString(), "N/A  \n");
+	}
+
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2015 uniVocity Software Pty Ltd
+ * Copyright 2015 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import java.util.*;
  * This type of error usually indicates that the input text has been parsed correctly, but the subsequent
  * transformations applied over the input (generally via a {@link RowProcessor}} failed.
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
  */
 public class DataProcessingException extends TextParsingException {
 
@@ -37,6 +37,7 @@ public class DataProcessingException extends TextParsingException {
 	private Map<String, Object> values = new HashMap<String, Object>();
 	private boolean fatal = true;
 	private boolean handled = false;
+	private String details = null;
 
 	/**
 	 * Creates a new exception with an error message only.
@@ -110,7 +111,7 @@ public class DataProcessingException extends TextParsingException {
 
 	@Override
 	protected String getDetails() {
-		String details = super.getDetails();
+		String details = (this.details == null ? "" : this.details + '\n') + super.getDetails();
 		Object[] row = getRow();
 		if (row != null) {
 			row = row.clone();
@@ -168,6 +169,9 @@ public class DataProcessingException extends TextParsingException {
 	public final void setValue(Object value) {
 		if (errorContentLength == 0) {
 			value = null;
+		}
+		if (value == null) {
+			value = "null";
 		}
 		this.value = value;
 	}
@@ -275,6 +279,10 @@ public class DataProcessingException extends TextParsingException {
 		return handled;
 	}
 
+	public void setDetails(String details) {
+		this.details = details == null || details.trim().isEmpty() ? null : details;
+	}
+
 	@Override
 	protected final String updateMessage(String msg) {
 		if (errorContentLength == 0 || msg == null) {
@@ -312,7 +320,6 @@ public class DataProcessingException extends TextParsingException {
 			start = end;
 		}
 		out.append(msg, previous == 0 ? 0 : previous + 1, msg.length());
-
 		return out.toString();
 	}
 }

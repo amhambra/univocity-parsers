@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015. uniVocity Software Pty Ltd
+ * Copyright (c) 2015. Univocity Software Pty Ltd
  * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -107,10 +107,10 @@ public class Github_39 {
 
 		writer.writeStringRowsAndClose(headerMap, rows);
 
-		assertEquals("HA,HB,HC,HD,HE\n" +
+		assertEquals(out.toString(), "HA,HB,HC,HD,HE\n" +
 				"a1,b1,,,\n" +
 				"a2,b2,,d1,\n" +
-				",b3,,,\n", out.toString());
+				",b3,,,\n");
 	}
 
 	@Test
@@ -142,10 +142,10 @@ public class Github_39 {
 
 		writer.processObjectRecordsAndClose(headerMap, rows);
 
-		assertEquals("HA,HB,HC,HD,HE\n" +
+		assertEquals(out.toString(),"HA,HB,HC,HD,HE\n" +
 				"a1,B1,!,!,!\n" +
 				"a2,B2,!,d1,!\n" +
-				"!,B3,!,!,!\n", out.toString());
+				"!,B3,!,!,!\n");
 	}
 }
 

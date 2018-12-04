@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2015 uniVocity Software Pty Ltd
+ * Copyright 2015 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,4 +51,22 @@ public class InputValueSwitch extends AbstractInputValueSwitch<ParsingContext> i
 		super(columnName);
 	}
 
+	@Override
+	protected final ParsingContext wrapContext(ParsingContext context) {
+		return new ParsingContextWrapper(context) {
+
+			private final String[] fieldNames = getHeaders();
+			private final int[] indexes = getIndexes();
+
+			@Override
+			public String[] headers() {
+				return fieldNames == null || fieldNames.length == 0 ? context.headers() : fieldNames;
+			}
+
+			@Override
+			public int[] extractedFieldIndexes() {
+				return indexes == null || indexes.length == 0 ? context.extractedFieldIndexes() : indexes;
+			}
+		};
+	}
 }

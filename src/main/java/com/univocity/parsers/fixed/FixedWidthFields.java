@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2016 uniVocity Software Pty Ltd
+ * Copyright 2016 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import java.util.Map.*;
 /**
  * This class provides the name, length, alignment and padding of each field in a fixed-width record.
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
  */
 public class FixedWidthFields implements Cloneable {
 
@@ -34,6 +34,7 @@ public class FixedWidthFields implements Cloneable {
 	private List<String> fieldNames = new ArrayList<String>();
 	private List<FieldAlignment> fieldAlignment = new ArrayList<FieldAlignment>();
 	private List<Character> fieldPadding = new ArrayList<Character>();
+	private List<Boolean> paddingsToKeep = new ArrayList<Boolean>();
 	private boolean noNames = true;
 	private int totalLength = 0;
 
@@ -165,9 +166,13 @@ public class FixedWidthFields implements Cloneable {
 				continue;
 			}
 
-			int length = fw.value();
-			int from = fw.from();
-			int to = fw.to();
+			int length = AnnotationRegistry.getValue(field.getTarget(), fw, "value", fw.value());
+			int from = AnnotationRegistry.getValue(field.getTarget(), fw, "from", fw.from());
+			int to = AnnotationRegistry.getValue(field.getTarget(), fw, "to", fw.to());
+
+
+			FieldAlignment alignment = AnnotationRegistry.getValue(field.getTarget(), fw, "alignment", fw.alignment());
+			char padding = AnnotationRegistry.getValue(field.getTarget(), fw, "padding", fw.padding());
 
 			if (length != -1) {
 				if (from != -1 || to != -1) {
@@ -176,15 +181,16 @@ public class FixedWidthFields implements Cloneable {
 
 				}
 
-				addField(fieldName, length, fw.alignment(), fw.padding());
+				addField(fieldName, length, alignment, padding);
 			} else if (from != -1 && to != -1) {
-				addField(fieldName, from, to, fw.alignment(), fw.padding());
+				addField(fieldName, from, to, alignment, padding);
 			} else {
 				throw new IllegalArgumentException("Can't initialize fixed-width field from " + field.describe() + "'. " +
 						"Field length/position undefined defined");
 			}
 
-
+			boolean keepPadding = AnnotationRegistry.getValue(field.getTarget(), fw, "keepPadding", fw.keepPadding());
+			setKeepPaddingFlag(keepPadding, fieldLengths.size() - 1);
 		}
 
 		if (fieldNamesWithoutConfig.size() > 0) {
@@ -332,6 +338,14 @@ public class FixedWidthFields implements Cloneable {
 	}
 
 	/**
+	 * Returns the sequence of fields whose padding character must/must not be retained in the parsed value
+	 * @return the sequence that have an explicit 'keepPadding' flag.
+	 */
+	Boolean[] getKeepPaddingFlags() {
+		return paddingsToKeep.toArray(new Boolean[0]);
+	}
+
+	/**
 	 * Adds the length of the next field in a fixed-width record. This method can be chained like this: addField(5).addField(6)...
 	 *
 	 * @param length the length of the next field. It must be greater than 0.
@@ -433,6 +447,7 @@ public class FixedWidthFields implements Cloneable {
 		fieldsToIgnore.add(Boolean.FALSE);
 		fieldNames.add(name);
 		fieldPadding.add(padding);
+		paddingsToKeep.add(null);
 		if (name != null) {
 			noNames = false;
 		}
@@ -682,6 +697,71 @@ public class FixedWidthFields implements Cloneable {
 		fieldPadding.set(position, padding);
 	}
 
+	/**
+	 * Configures a given list of fields to retain the padding character in any parsed values,
+	 * overriding the any default set for the whole input in {@link FixedWidthParserSettings#getKeepPadding()}
+	 *
+	 * @param position the positions of the fields that should keep the padding character
+	 * @param positions additional positions
+	 */
+	public void keepPaddingOn(int position, int... positions) {
+		setKeepPaddingFlag(true, position, positions);
+	}
+
+	/**
+	 * Configures a given list of fields to retain the padding character in any parsed values,
+	 * overriding the any default set for the whole input in {@link FixedWidthParserSettings#getKeepPadding()}
+	 *
+	 * @param names   the names of the fields that should keep the padding character
+	 */
+	public void keepPaddingOn(String name, String... names) {
+		setKeepPaddingFlag(true, name, names);
+	}
+
+	/**
+	 * Configures a given list of fields to remove the padding character in any parsed values,
+	 * overriding the any default set for the whole input in {@link FixedWidthParserSettings#getKeepPadding()}
+	 *
+	 * @param position the positions of the fields that should keep the padding character
+	 * @param positions additional positions
+	 */
+	public void stripPaddingFrom(int position, int... positions) {
+		setKeepPaddingFlag(false, position, positions);
+	}
+
+	/**
+	 * Configures a given list of fields to remove the padding character in any parsed values,
+	 * overriding the any default set for the whole input in {@link FixedWidthParserSettings#getKeepPadding()}
+	 *
+	 * @param names   the names of the fields that should keep the padding character
+	 */
+	public void stripPaddingFrom(String name, String... names) {
+		setKeepPaddingFlag(false, name, names);
+	}
+
+
+	private void setKeepPaddingFlag(boolean keep, int position, int... positions) {
+		setPaddingToKeep(position, keep);
+		for (int p : positions) {
+			setPaddingToKeep(p, keep);
+		}
+	}
+
+	private void setKeepPaddingFlag(boolean keep, String name, String... names) {
+		int position = indexOf(name);
+		setPaddingToKeep(position, keep);
+		for (String n : names) {
+			position = indexOf(n);
+			setPaddingToKeep(position, keep);
+		}
+	}
+
+
+	private void setPaddingToKeep(int position, boolean keepPaddingFlag) {
+		validateIndex(position);
+		paddingsToKeep.set(position, keepPaddingFlag);
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder out = new StringBuilder();
@@ -695,6 +775,7 @@ public class FixedWidthFields implements Cloneable {
 			out.append(", length: ").append(length);
 			out.append(", align: ").append(fieldAlignment.get(i));
 			out.append(", padding: ").append(fieldPadding.get(i));
+			out.append(", keepPadding: ").append(paddingsToKeep.get(i));
 			i++;
 		}
 
@@ -721,6 +802,7 @@ public class FixedWidthFields implements Cloneable {
 			out.fieldNames = new ArrayList<String>(fieldNames);
 			out.fieldAlignment = new ArrayList<FieldAlignment>(fieldAlignment);
 			out.fieldPadding = new ArrayList<Character>(fieldPadding);
+			out.paddingsToKeep = new ArrayList<Boolean>(paddingsToKeep);
 			return out;
 		} catch (CloneNotSupportedException e) {
 			throw new IllegalStateException(e);

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2015 uniVocity Software Pty Ltd
+ * Copyright 2015 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -949,7 +949,7 @@ public abstract class AbstractRoutines<P extends CommonParserSettings<?>, W exte
 
 			@Override
 			public void processEnded(ParsingContext context) {
-				out.rows = context.currentRecord();
+				out.rows = context.currentRecord() + 1;
 				out.columns = lastColumn;
 			}
 		});

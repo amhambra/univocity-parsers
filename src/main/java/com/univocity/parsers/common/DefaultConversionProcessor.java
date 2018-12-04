@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 uniVocity Software Pty Ltd
+ * Copyright 2014 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,12 +24,12 @@ import java.util.*;
 /**
  * The base class for {@link RowProcessor} and {@link RowWriterProcessor} implementations that support value conversions provided by {@link Conversion} instances.
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
  */
 public abstract class DefaultConversionProcessor implements ConversionProcessor {
 
 	private Map<Class<?>, Conversion[]> conversionsByType;
-	private FieldConversionMapping conversions;
+	protected FieldConversionMapping conversions;
 	private boolean conversionsInitialized;
 
 	private int[] fieldIndexes;
@@ -130,11 +130,28 @@ public abstract class DefaultConversionProcessor implements ConversionProcessor 
 			keepRow = applyConversionsByType(false, objectRow, convertedFlags);
 		}
 
-		if (keepRow) {
+		if (keepRow && validateAllValues(objectRow)) {
 			return objectRow;
 		}
 
 		return null;
+	}
+
+	private boolean validateAllValues(Object[] objectRow) {
+		if (conversions != null && conversions.validatedIndexes != null) {
+			boolean keepRow = true;
+			for (int i = 0; keepRow && i < conversions.validatedIndexes.length; i++) {
+				int index = conversions.validatedIndexes[i];
+				try {
+					Object value = index < objectRow.length ? objectRow[index] : null;
+					conversions.executeValidations(index, value);
+				} catch (Throwable ex) {
+					keepRow = handleConversionError(ex, objectRow, index);
+				}
+			}
+			return keepRow;
+		}
+		return true;
 	}
 
 	/**
@@ -160,6 +177,11 @@ public abstract class DefaultConversionProcessor implements ConversionProcessor 
 				this.fieldIndexes = indexesToWrite;
 			}
 
+			if(executeInReverseOrder){
+				keepRow = validateAllValues(row);
+			}
+
+
 			final int last = fieldIndexes == null ? row.length : fieldIndexes.length;
 
 			for (int i = 0; i < last; i++) {
@@ -180,7 +202,11 @@ public abstract class DefaultConversionProcessor implements ConversionProcessor 
 			keepRow = applyConversionsByType(true, row, convertedFlags);
 		}
 
-		return keepRow;
+		if(executeInReverseOrder){
+			return keepRow;
+		}
+
+		return keepRow && validateAllValues(row);
 	}
 
 	private boolean applyConversionsByType(boolean reverse, Object[] row, boolean[] convertedFlags) {
@@ -215,6 +241,10 @@ public abstract class DefaultConversionProcessor implements ConversionProcessor 
 	 * {@code false} if the record should be discarded.
 	 */
 	protected final boolean handleConversionError(Throwable ex, Object[] row, int column) {
+		if(row != null && row.length < column){
+			//expand row so column index won't make error handlers blow up.
+			row = Arrays.copyOf(row, column + 1);
+		}
 		DataProcessingException error = toDataProcessingException(ex, row, column);
 
 		if (column > -1 && errorHandler instanceof RetryableErrorHandler) {

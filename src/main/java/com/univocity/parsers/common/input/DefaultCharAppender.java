@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 uniVocity Software Pty Ltd
+ * Copyright 2014 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ public class DefaultCharAppender implements CharAppender {
 	@Override
 	public void appendIgnoringWhitespaceAndPadding(char ch, char padding) {
 		chars[index++] = ch;
-		if (ch == padding || (ch <= ' ' && whitespaceRangeStart  < ch)) {
+		if (ch == padding || (ch <= ' ' && whitespaceRangeStart < ch)) {
 			whitespaceCount++;
 		} else {
 			whitespaceCount = 0;
@@ -70,7 +70,7 @@ public class DefaultCharAppender implements CharAppender {
 	@Override
 	public void appendIgnoringWhitespace(char ch) {
 		chars[index++] = ch;
-		if (ch <= ' ' && whitespaceRangeStart  < ch) {
+		if (ch <= ' ' && whitespaceRangeStart < ch) {
 			whitespaceCount++;
 		} else {
 			whitespaceCount = 0;
@@ -78,8 +78,56 @@ public class DefaultCharAppender implements CharAppender {
 	}
 
 	@Override
+	public int indexOf(char ch, int from) {
+		int len = index - whitespaceCount;
+		for (int i = from; i < len; i++) {
+			if (chars[i] == ch) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	@Override
+	public int indexOfAny(char[] chars, int from) {
+		int len = index - whitespaceCount;
+		for (int i = from; i < len; i++) {
+			for (int j = 0; j < chars.length; j++) {
+				if (this.chars[i] == chars[j]) {
+					return i;
+				}
+			}
+		}
+		return -1;
+	}
+
+	@Override
+	public String substring(int from, int length) {
+		return new String(chars, from, length);
+	}
+
+	@Override
+	public void remove(int from, int length) {
+		if (length > 0) {
+			int srcPos = from + length;
+			int len = index - length;
+			if (srcPos + len > index) {
+				len = len - from;
+			}
+
+			System.arraycopy(chars, srcPos, chars, from, len);
+			index -= length;
+		}
+	}
+
+	@Override
 	public void append(char ch) {
 		chars[index++] = ch;
+	}
+
+	@Override
+	public final void append(Object o) {
+		append(String.valueOf(o));
 	}
 
 	@Override
@@ -229,7 +277,7 @@ public class DefaultCharAppender implements CharAppender {
 	 */
 	public final void updateWhitespace() {
 		whitespaceCount = 0;
-		for (int i = index - 1; i >= 0 && chars[i] <= ' ' && whitespaceRangeStart  < chars[i]; i--, whitespaceCount++)
+		for (int i = index - 1; i >= 0 && chars[i] <= ' ' && whitespaceRangeStart < chars[i]; i--, whitespaceCount++)
 			;
 	}
 
@@ -283,5 +331,94 @@ public class DefaultCharAppender implements CharAppender {
 	@Override
 	public final String subSequence(int from, int to) {
 		return new String(chars, from, to - from);
+	}
+
+	@Override
+	public final void ignore(int count) {
+		whitespaceCount += count;
+	}
+
+	@Override
+	public void delete(int count) {
+		index -= count;
+		if (index < 0) {
+			index = 0;
+		}
+		whitespaceCount = 0;
+	}
+
+	@Override
+	public int indexOf(char[] charSequence, int fromIndex) {
+		if (charSequence.length == 0) {
+			return fromIndex;
+		}
+		if (fromIndex >= index) {
+			return -1;
+		}
+
+		char first = charSequence[0];
+		int max = index - charSequence.length;
+
+		for (int i = fromIndex; i <= max; i++) {
+			if (chars[i] != first) {
+				while (++i <= max && chars[i] != first) ;
+			}
+
+			if (i <= max) {
+				int j = i + 1;
+				int end = j + charSequence.length - 1;
+				for (int k = 1; j < end && chars[j] == charSequence[k]; j++, k++)
+					;
+				if (j == end) {
+					return i;
+				}
+			}
+		}
+		return -1;
+	}
+
+	@Override
+	public int indexOf(CharSequence charSequence, int fromIndex) {
+		if (charSequence.length() == 0) {
+			return fromIndex;
+		}
+		if (fromIndex >= index) {
+			return -1;
+		}
+
+		char first = charSequence.charAt(0);
+		int max = index - charSequence.length();
+
+		for (int i = fromIndex; i <= max; i++) {
+			if (chars[i] != first) {
+				while (++i <= max && chars[i] != first) ;
+			}
+
+			if (i <= max) {
+				int j = i + 1;
+				int end = j + charSequence.length() - 1;
+				for (int k = 1; j < end && chars[j] == charSequence.charAt(k); j++, k++)
+					;
+				if (j == end) {
+					return i;
+				}
+			}
+		}
+		return -1;
+	}
+
+	@Override
+	public boolean isEmpty() {
+		return index > whitespaceCount;
+	}
+
+	@Override
+	public int lastIndexOf(char ch) {
+		for (int x = index - whitespaceCount -1; x >= 0; x--) {
+			if (chars[x] == ch) {
+				return x;
+			}
+		}
+		return -1;
 	}
 }

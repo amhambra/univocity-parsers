@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2015 uniVocity Software Pty Ltd
+ * Copyright 2015 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -237,5 +237,25 @@ public class LookaheadCharInputReader implements CharInputReader {
 	@Override
 	public String getQuotedString(char quote, char escape, char escapeEscape, int maxLength, char stop1, char stop2, boolean keepQuotes, boolean keepEscape, boolean trimLeading, boolean trimTrailing) {
 		return reader.getQuotedString(quote, escape, escapeEscape, maxLength, stop1, stop2, keepQuotes, keepEscape, trimLeading, trimTrailing);
+	}
+
+	@Override
+	public int currentParsedContentLength() {
+		return reader.currentParsedContentLength();
+	}
+
+	@Override
+	public boolean skipString(char ch, char stop) {
+		return reader.skipString(ch, stop);
+	}
+
+	@Override
+	public boolean skipQuotedString(char quote, char escape, char stop1, char stop2) {
+		return reader.skipQuotedString(quote, escape, stop1, stop2);
+	}
+
+	@Override
+	public int lastIndexOf(char ch) {
+		return reader.lastIndexOf(ch);
 	}
 }

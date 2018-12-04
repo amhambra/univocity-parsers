@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 uniVocity Software Pty Ltd
+ * Copyright 2014 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import org.testng.annotations.*;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 import static org.testng.Assert.*;
 
@@ -782,5 +783,57 @@ public class CsvParserTest extends ParserTestCase {
 		for (Record row : parser.iterateRecords(new StringReader(""))) {
 			fail("Empty input, should not get here");
 		}
+	}
+
+	private static void append4000Symbols(StringBuilder sb) {
+		final long startTime = System.currentTimeMillis() - TimeUnit.SECONDS.toMillis(200);
+		for (int i = 0; i < 200; i++) {
+			sb.append(startTime + TimeUnit.SECONDS.toMillis(i)).append(",10000\n");
+		}
+	}
+
+	@Test
+	public void testCollectCommentOnBufferUpdate() {
+		final StringBuilder commentLine = new StringBuilder("#");
+		for (int i = 0; i < 100; i++) {
+			commentLine.append(' ').append(i);
+		}
+		final StringBuilder csv = new StringBuilder("time,value\n");
+		append4000Symbols(csv);
+		// now the comment processing will meet buffer update operation (if buffer size is 4096)
+		csv.append(commentLine);
+
+		final CsvParserSettings csvParserSettings = new CsvParserSettings();
+		csvParserSettings.setCommentCollectionEnabled(true);
+		csvParserSettings.setReadInputOnSeparateThread(false);
+		final CsvParser csvParser = new CsvParser(csvParserSettings);
+		csvParser.parseAll(new StringReader(csv.toString()));
+		final Map<Long, String> comments = csvParser.getContext().comments();
+		assertEquals(1, comments.size());
+		assertEquals(commentLine.substring(2), comments.values().iterator().next());
+	}
+
+	@Test
+	public void shouldPrintUserDefinedHeaders() {
+		final String[] userDefinedHeader = {"timestamp", "memory_used"};
+		final CsvParserSettings settings = new CsvParserSettings();
+		settings.setHeaderExtractionEnabled(false);
+		settings.setHeaders(userDefinedHeader);
+
+		final String[][] headersFromContext = new String[][]{null};
+		settings.setProcessor(new AbstractRowProcessor() {
+			@Override
+			public void processStarted(ParsingContext context) {
+				headersFromContext[0] = context.headers();
+				System.out.println("headers: " + Arrays.toString(context.headers()));
+			}
+		});
+		settings.setReadInputOnSeparateThread(false);
+		final CsvParser csvParser = new CsvParser(settings);
+		final String csv = "2018-11-22T17:53:19.446Z,1493984088\n" +
+				"2018-11-22T17:53:34.447Z,865556632\n" +
+				"2018-11-22T17:53:49.447Z,600667192";
+		csvParser.parse(new StringReader(csv));
+		assertEquals(headersFromContext[0], userDefinedHeader);
 	}
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 uniVocity Software Pty Ltd
+ * Copyright 2014 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import com.univocity.parsers.common.*;
 /**
  * An implementation of {@link CharAppender} that does nothing. Used by {@link ParserOutput} to transparently discard any unwanted input while parsing.
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
  * @see com.univocity.parsers.common.ParserOutput
  * @see com.univocity.parsers.common.input.CharAppender
  */
@@ -173,7 +173,8 @@ public class NoopCharAppender implements CharAppender {
 
 	@Override
 	public final char appendUntil(char ch, CharInput input, char stop1, char stop2, char stop3) {
-		for (; ch != stop1 && ch != stop2 && ch != stop3; ch = input.nextChar()) ;
+		for (; ch != stop1 && ch != stop2 && ch != stop3; ch = input.nextChar())
+			;
 		return ch;
 	}
 
@@ -255,5 +256,90 @@ public class NoopCharAppender implements CharAppender {
 	@Override
 	public void append(int[] ch) {
 
+	}
+
+	/**
+	 * Does nothing
+	 */
+	@Override
+	public void append(Object obj) {
+
+	}
+
+	/**
+	 * Does nothing
+	 */
+	@Override
+	public void ignore(int count) {
+
+	}
+
+	/**
+	 * Does nothing
+	 */
+	@Override
+	public int indexOf(char ch, int from) {
+		return -1;
+	}
+
+	/**
+	 * Does nothing
+	 */
+	@Override
+	public String substring(int from, int length) {
+		return null;
+	}
+
+	/**
+	 * Does nothing
+	 */
+	@Override
+	public void remove(int from, int length) {
+
+	}
+
+	/**
+	 * Does nothing
+	 */
+	@Override
+	public void delete(int count) {
+
+	}
+
+	/**
+	 * Does nothing
+	 */
+	@Override
+	public int indexOfAny(char[] chars, int from) {
+		return -1;
+	}
+
+	/**
+	 * Does nothing
+	 */
+	@Override
+	public int indexOf(char[] charSequence, int from) {
+		return -1;
+	}
+
+	/**
+	 * Does nothing
+	 */
+	@Override
+	public int indexOf(CharSequence charSequence, int from) {
+		return -1;
+	}
+
+	/**
+	 * Returns {@code true} as it's always empty.
+	 */
+	@Override
+	public boolean isEmpty() {
+		return true;
+	}
+
+	@Override
+	public int lastIndexOf(char ch) {
+		return -1;
 	}
 }

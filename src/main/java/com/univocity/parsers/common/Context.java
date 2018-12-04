@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 uniVocity Software Pty Ltd
+ * Copyright 2014 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import com.univocity.parsers.common.record.*;
 /**
  * Basic context information used internally by instances of {@link com.univocity.parsers.common.processor.core.Processor} and {@link com.univocity.parsers.common.record.Record}.
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:dev@univocity.com">dev@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:dev@univocity.com">dev@univocity.com</a>
  * @see DefaultContext
  * @see ParsingContext
  * @see DefaultParsingContext
@@ -127,6 +127,9 @@ public interface Context {
 
 	/**
 	 * Converts the given parsed row to a {@link Record}
+	 *
+	 * @param row the row to be converted into a {@link Record}
+	 *
 	 * @return a {@link Record} representing the given row.
 	 */
 	Record toRecord(String[] row);

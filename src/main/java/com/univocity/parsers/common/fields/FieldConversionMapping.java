@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 uniVocity Software Pty Ltd
+ * Copyright 2014 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,12 +24,14 @@ import java.util.*;
 /**
  * A class for mapping field selections to sequences of {@link Conversion} objects
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
  */
 public class FieldConversionMapping {
 
 	@SuppressWarnings("rawtypes")
 	private static final Conversion[] EMPTY_CONVERSION_ARRAY = new Conversion[0];
+
+	public int[] validatedIndexes;
 
 	/**
 	 * This list contains the sequence of conversions applied to sets of fields over multiple calls.
@@ -72,6 +74,8 @@ public class FieldConversionMapping {
 	 */
 	private Map<Integer, List<Conversion<?, ?>>> conversionsByIndex = Collections.emptyMap();
 
+	private Map<Integer, List<ValidatedConversion>> validationsByIndex = Collections.emptyMap();
+
 	/**
 	 * Prepares the conversions registered in this object to be executed against a given sequence of fields
 	 *
@@ -99,6 +103,36 @@ public class FieldConversionMapping {
 			fieldEnumConversionMapping.prepareExecution(writing, next, conversionsByIndex, values);
 			convertAllMapping.prepareExecution(writing, next, conversionsByIndex, values);
 		}
+
+
+		Iterator<Map.Entry<Integer, List<Conversion<?, ?>>>> entryIterator = conversionsByIndex.entrySet().iterator();
+
+		while (entryIterator.hasNext()) {
+			Map.Entry<Integer, List<Conversion<?, ?>>> e = entryIterator.next();
+			Iterator<Conversion<?, ?>> it = e.getValue().iterator();
+			while (it.hasNext()) {
+				Conversion conversion = it.next();
+				if (conversion instanceof ValidatedConversion) {
+					if (validationsByIndex.isEmpty()) {
+						validationsByIndex = new TreeMap<Integer, List<ValidatedConversion>>();
+					}
+
+					it.remove();
+					List<ValidatedConversion> validations = validationsByIndex.get(e.getKey());
+					if (validations == null) {
+						validations = new ArrayList<ValidatedConversion>(1);
+						validationsByIndex.put(e.getKey(), validations);
+					}
+					validations.add((ValidatedConversion) conversion);
+				}
+			}
+
+			if (e.getValue().isEmpty()) {
+				entryIterator.remove();
+			}
+		}
+
+		validatedIndexes = ArgumentUtils.toIntArray(validationsByIndex.keySet());
 	}
 
 	/**
@@ -142,6 +176,20 @@ public class FieldConversionMapping {
 	@SuppressWarnings("rawtypes")
 	public FieldSet<Enum> applyConversionsOnFieldEnums(Conversion<String, ?>... conversions) {
 		return fieldEnumConversionMapping.registerConversions(conversions);
+	}
+
+	/**
+	 * Applies any validations associated with a field at a given index in a record
+	 * @param index                 The index of parsed value in a record
+	 * @param value                 The value of the record at the given index
+	 */
+	public void executeValidations(int index, Object value) {
+		List<ValidatedConversion> validations = validationsByIndex.get(index);
+		if (validations != null) {
+			for (int i = 0; i < validations.size(); i++) {
+				validations.get(i).execute(value);
+			}
+		}
 	}
 
 	/**
@@ -257,7 +305,7 @@ public class FieldConversionMapping {
 			return EMPTY_CONVERSION_ARRAY;
 		} else {
 			out = new Conversion[1];
-			out[0] = AnnotationHelper.getDefaultConversion(expectedType, null);
+			out[0] = AnnotationHelper.getDefaultConversion(expectedType, null, null);
 			if (out[0] == null) {
 				return EMPTY_CONVERSION_ARRAY;
 			}
@@ -271,7 +319,7 @@ public class FieldConversionMapping {
  *
  * @param <T> the FieldSelector type information used to uniquely identify a field (e.g. references to field indexes would use Integer, while references to field names would use String).
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
  * @see FieldNameSelector
  * @see FieldIndexSelector
  */

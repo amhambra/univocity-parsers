@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 uniVocity Software Pty Ltd
+ * Copyright 2014 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,6 +78,52 @@ public class CsvParserExamples extends Example {
 		// You only need to use this if you are not parsing the entire content.
 		// But it doesn't hurt if you call it anyway.
 		parser.stopParsing();
+
+		//##CODE_END
+
+		printAndValidate(out);
+	}
+
+	@Test
+	public void example002IteratorOverCsv() throws Exception {
+		StringBuilder out = new StringBuilder();
+
+		CsvParserSettings settings = new CsvParserSettings();
+		//the file used in the example uses '\n' as the line separator sequence.
+		//the line separator sequence is defined here to ensure systems such as MacOS and Windows
+		//are able to process this file correctly (MacOS uses '\r'; and Windows uses '\r\n').
+		settings.getFormat().setLineSeparator("\n");
+
+		//##CODE_START
+
+		// creates a CSV parser
+		CsvParser parser = new CsvParser(settings);
+
+		for(String[] row : parser.iterate(getReader("/examples/example.csv"))){
+			println(out, Arrays.toString(row));
+		}
+
+		//##CODE_END
+		printAndValidate(out);
+	}
+
+	@Test
+	public void example002RecordIteratorOverCsv() throws Exception {
+		StringBuilder out = new StringBuilder();
+
+		CsvParserSettings settings = new CsvParserSettings();
+		//the file used in the example uses '\n' as the line separator sequence.
+		//the line separator sequence is defined here to ensure systems such as MacOS and Windows
+		//are able to process this file correctly (MacOS uses '\r'; and Windows uses '\r\n').
+		settings.getFormat().setLineSeparator("\n");
+
+		// creates a CSV parser
+		CsvParser parser = new CsvParser(settings);
+
+		//##CODE_START
+		for(Record record : parser.iterateRecords(getReader("/examples/example.csv"))){
+			println(out, Arrays.toString(record.getValues()));
+		}
 
 		//##CODE_END
 
@@ -372,6 +418,46 @@ public class CsvParserExamples extends Example {
 	}
 
 	@Test
+	public void example011ErrorHandlingWithRetry() {
+		final StringBuilder out = new StringBuilder();
+
+		CsvParserSettings settings = new CsvParserSettings();
+		settings.getFormat().setLineSeparator("\n");
+
+		BeanListProcessor<AnotherTestBean> beanProcessor = new BeanListProcessor<AnotherTestBean>(AnotherTestBean.class);
+		settings.setProcessor(beanProcessor);
+
+		//##CODE_START
+		settings.setProcessorErrorHandler(new RetryableErrorHandler<ParsingContext>() {
+			@Override
+			public void handleError(DataProcessingException error, Object[] inputRow, ParsingContext context) {
+				println(out, "Error processing row: " + Arrays.toString(inputRow));
+				println(out, "Error details: column '" + error.getColumnName() + "' (index " + error.getColumnIndex() + ") has value '" + inputRow[error.getColumnIndex()] + "'. Setting it to null");
+
+				if(error.getColumnIndex() == 0){
+					setDefaultValue(null);
+				} else {
+					keepRecord(); //prevents the parser from discarding the row.
+				}
+			}
+		});
+		//##CODE_END
+
+
+		CsvParser parser = new CsvParser(settings);
+		parser.parse(getReader("/examples/bean_test.csv"));
+
+		println(out);
+		println(out, "Printing beans that could be parsed");
+		println(out);
+		for (AnotherTestBean bean : beanProcessor.getBeans()) {
+			println(out, bean); //should print two beans
+		}
+
+		printAndValidate(out);
+	}
+
+	@Test
 	public void example012FormatAutodetection() throws Exception {
 		CsvParserSettings settings = new CsvParserSettings();
 
@@ -482,7 +568,7 @@ public class CsvParserExamples extends Example {
 	public void example015QuoteAndEscapeHandling() {
 		CsvParserSettings settings = new CsvParserSettings();
 		//##CODE_START
-		settings.setParseUnescapedQuotesUntilDelimiter(false);
+		settings.setUnescapedQuoteHandling(UnescapedQuoteHandling.STOP_AT_CLOSING_QUOTE);
 		settings.getFormat().setLineSeparator("\r\n");
 
 		//let's quote values with single quotes
@@ -491,33 +577,41 @@ public class CsvParserExamples extends Example {
 
 		//Line separators are normalized by default. This means they are all converted to \n, including line separators found within quoted values.
 		parse("value 1,'line 1\r\nline 2',value 3", settings, "Normalizing line endings");
+		//result: [value 1, line 1\nline 2, value 3]
 
 		//You can disable this behavior to keep the original line separators in parsed values.
 		settings.setNormalizeLineEndingsWithinQuotes(false);
 		parse("value 1,'line 1\r\nline 2',value 3", settings, "Without normalized line endings");
+		//result: [value 1, line 1\r\nline 2, value 3]
 
 		//Values that contain a quote character, but are not enclosed within quotes, are read as-is
 		parse("value 1,I'm NOT a quoted value,value 3", settings, "Value with a quote, not enclosed");
+		//result: [value 1, I'm NOT a quoted value, value 3]
 
 		//But if your input comes with escaped quotes, and is not enclosed within quotes you'll get the escape sequence
 		parse("value 1,I''m NOT a quoted value,value 3", settings, "Value with quote, escaped, not enclosed");
+		//result: [value 1, I''m NOT a quoted value, value 3]
 
 		//Turn on the escape unquoted values to correctly unescape this sort of input
 		settings.setEscapeUnquotedValues(true);
 		parse("value 1,I''m NOT a quoted value,value 3", settings, "Value with quote, escaped, not enclosed, processing escape");
+		//result: [value 1, I'm NOT a quoted value, value 3]
 
 		//As usual, when you parse values that have escaped characters, such as the quote, you get the unescaped result.
 		parse("value 1,'I''m a quoted value',value 3", settings, "Enclosed value, quote escaped");
+		//result: [value 1, I'm a quoted value, value 3]
 
 		//But in some cases you might want to get the original text, character by character, including the original escape sequence
 		settings.setKeepEscapeSequences(true);
 		parse("value 1,'I''m a quoted value',value 3", settings, "Enclosed value, quote escaped, keeping escape sequences");
+		//result: [value 1, I''m a quoted value, value 3]
 
 		//By default, the parser handles broken quote escapes, so it won't complain about "I'm" not being escaped properly (should be "I''m").
 		parse("value 1,'I'm a broken quoted value',value 3", settings, "Enclosed value, broken quote escape");
+		//result: [value 1, I'm a broken quoted value, value 3]
 
 		//But you can disable this and get exceptions instead.
-		settings.setParseUnescapedQuotes(false);
+		settings.setUnescapedQuoteHandling(UnescapedQuoteHandling.RAISE_ERROR);
 		try {
 			parse("value 1,'Hey, I'm a broken quoted value',value 3", settings, "This will blow up");
 		} catch (TextParsingException exception) {

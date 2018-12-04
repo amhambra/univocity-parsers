@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2015 uniVocity Software Pty Ltd
+ * Copyright 2015 Univocity Software Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import java.util.Map.*;
 /**
  * An {@link InputAnalysisProcess} to detect column delimiters, quotes and quote escapes in a CSV input.
  *
- * @author uniVocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
+ * @author Univocity Software Pty Ltd - <a href="mailto:parsers@univocity.com">parsers@univocity.com</a>
  */
 abstract class CsvFormatDetector implements InputAnalysisProcess {
 
@@ -49,7 +49,8 @@ abstract class CsvFormatDetector implements InputAnalysisProcess {
 		if (allowedDelimiters != null && allowedDelimiters.length > 0) {
 			suggestedDelimiter = allowedDelimiters[0];
 		} else {
-			suggestedDelimiter = settings.getFormat().getDelimiter();
+			String delimiter = settings.getFormat().getDelimiterString();
+			suggestedDelimiter = delimiter.length() > 1 ? ',' : settings.getFormat().getDelimiter();
 			allowedDelimiters = new char[0];
 		}
 
@@ -192,9 +193,9 @@ abstract class CsvFormatDetector implements InputAnalysisProcess {
 
 		sums.keySet().removeAll(toRemove);
 
-		if(allowedDelimiters.length > 0) {
+		if (allowedDelimiters.length > 0) {
 			Set<Character> toRetain = new HashSet<Character>();
-			for(char c : allowedDelimiters){
+			for (char c : allowedDelimiters) {
 				toRetain.add(c);
 			}
 			sums.keySet().retainAll(toRetain);
@@ -211,11 +212,11 @@ abstract class CsvFormatDetector implements InputAnalysisProcess {
 				break out;
 			}
 
-			for(char c : allowedDelimiters){
-				if(c == delimiterMin){
+			for (char c : allowedDelimiters) {
+				if (c == delimiterMin) {
 					delimiter = delimiterMin;
 					break out;
-				} else if(c == delimiterMax){
+				} else if (c == delimiterMax) {
 					delimiter = delimiterMax;
 					break out;
 				}
@@ -308,7 +309,7 @@ abstract class CsvFormatDetector implements InputAnalysisProcess {
 					Integer newTotal = totals.get(newChar);
 
 					if (currentTotal != null && newTotal != null) {
-						if ((min && newTotal < currentTotal) || (!min && newTotal > currentTotal)) {
+						if ((min && newTotal > currentTotal) || (!min && newTotal > currentTotal)) {
 							defaultChar = newChar;
 						}
 					} else if (isSymbol(newChar)) {
